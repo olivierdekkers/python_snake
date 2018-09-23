@@ -1,8 +1,8 @@
 import random
 import curses
-from figures import Snake_figure
+from snake import Snake
 
-class Snake(object):
+class SnakeGame(object):
 
     def __init__(self, drawer):
         self.drawer = drawer
@@ -23,7 +23,7 @@ class Snake(object):
     def init(self, sw, sh):
         self.sh = sh
         self.sw= sw
-        self.food = [[int(self.sh/2), int(self.sw/2)]]
+        self.food = []
         self.snakes=[]
         while len(self.snakes) < self.number_of_snakes:
             up = self.drawer.getch()
@@ -42,14 +42,15 @@ class Snake(object):
                 left : -1,
                 right : 1
             }
-            snake = Snake_figure(self.drawer, self.movement_dic_y,self.movement_dic_x)
+            snake = Snake(self.drawer, self.movement_dic_y,self.movement_dic_x)
             snake.init(1,self.sw,1,self.sh)
             snake.prev_key = right
             while self.in_snakes(snake, self.snakes):
                 snake=Snake(self.drawer)
+                snake.init(1,self.sw,1,self.sh)
             self.snakes.append(snake)
         while len(self.food) < self.food_len:
-            nf = [ random.randint(1, self.sh-1), 
+            nf = [ random.randint(1, self.sh-1),
                    random.randint(1, self.sw-1)
                  ]
             if nf not in self.snakes and nf not in self.food:
@@ -65,7 +66,7 @@ class Snake(object):
             self.food = snake.encounter_food(self.food)
 
         while len(self.food) < self.food_len:
-            nf = [ random.randint(1, self.sh-1), 
+            nf = [ random.randint(1, self.sh-1),
                    random.randint(1, self.sw-1)
                  ]
             if nf not in [location for snake in self.snakes for location in snake.snake] and nf not in self.food:

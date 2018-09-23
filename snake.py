@@ -1,67 +1,101 @@
 import random
 import curses
 
-s = curses.initscr()
-curses.curs_set(0)
-sh , sw = s.getmaxyx()
-w = curses.newwin(sw, sw, 0,0)
-w.keypad(1)
-w.timeout(100)
 
-snk_x = sw/4
-snk_y = sh/2
-snake = [
-    [snk_y, snk_x],
-    [snk_y, snk_x-1],
-    [snk_y, snk_x-2]
-]
+class Snake(object):
 
-food = [int(sh/2), int(sw/2)]
+    def __init__(self, drawer, y_move, x_move):
+        self.drawer = drawer
+        self.movement_dic_y = y_move
+        self.movement_dic_x = x_move
+        self.prev_key =  list(self.movement_dic_x.keys())[2]
+        self.undraw = []
 
-print(food)
-w.addch(food[0], food[1], curses.ACS_PI)
+    def init(self, sw_start, sw, sh_start, sh):
+        self.sh_start = sh_start
+        self.sh = sh
+        self.sw_start = sw_start
+        self.sw= sw
+        snk_x = random.randint(self.sw_start, self.sw)
+        snk_y = random.randint(self.sh_start, self.sh)
+        self.snake= [
+            [int(snk_y), int(snk_x)],
+            [int(snk_y), int(snk_x-1)],
+            [int(snk_y), int(snk_x-2)],
+        ]
+        self.direction={'up': curses.ACS_UARROW,
+                        'left':curses.ACS_LARROW,
+                        'right':curses.ACS_RARROW,
+                        'down':curses.ACS_DARROW}
 
-key = curses.KEY_RIGHT
+
+    def calc_direction(self, cord1, cord2):
+        if cord1[0]<cord2[0]:
+            return 'up'
+        elif cord1[0]>cord2[0]:
+            return 'down'
+
+        if cord1[1]<cord2[1]:
+            return 'left'
+        elif cord1[1]>cord2[1]:
+            return 'right'
 
 
-while True:
-    next_key = w.getch()
-    key = key if next_key == -1 else next_key
+    def get_snake(self):
+         snake_body=curses.ACS_BLOCK
 
-    if snake[0][0] in [0, sh] or snake[0][1] in [0, sw] or snake[0] in snake[1:]:
-        curses.endwin()
-        quit()
+         directionHead = self.calc_direction(self.snake[0],self.snake[1])
+         directionTail = self.calc_direction(self.snake[-1],self.snake[-2])
+         snake_head=self.direction[directionHead]
+         snake_tail=self.direction[directionTail]
 
-    new_head = [snake[0][0], snake[0][1]]
+         snake_head = ([self.snake[0]], snake_head)
+         snake_body = (self.snake[1:-1], snake_body)
+         snake_tail = ([self.snake[-1]], snake_tail)
+         return (snake_head,snake_body,snake_tail)
 
-    movement_dic_y = {
-        curses.KEY_DOWN : 1,
-        curses.KEY_UP : -1,
-        curses.KEY_LEFT : 0,
-        curses.KEY_RIGHT : 0
-    }
-    movement_dic_x = {
-        curses.KEY_DOWN : 0,
-        curses.KEY_UP :  0,
-        curses.KEY_LEFT : -1,
-        curses.KEY_RIGHT : 1
-    }
+    def move(self,key):
+        try:
+            if key not in self.movement_dic_y:
+                key = self.prev_key
 
-    new_head = [new_head[0] + movement_dic_y[key], new_head[1] + movement_dic_x[key]]
+            self.new_head = [self.snake[0][0], self.snake[0][1]]
+            self.new_head= [self.new_head[0]+self.movement_dic_y[key], self.new_head[1] + self.movement_dic_x[key]]
+            if self.new_head == self.snake[1]:
+                self.new_head[0] = self.snake[0][0] + (self.snake[0][0] - self.snake[1][0])
+                self.new_head[1] = self.snake[0][1] + (self.snake[0][1] - self.snake[1][1])
 
-    snake.insert(0, new_head)
+            self.snake.insert(0, self.new_head)
+            self.prev_key = key
+        except:
+            pass
 
-    if snake[0] == food:
-        food = None
-        while food is None:
-            nf = [ random.randint(1, sh-1), 
-                   random.randint(1, sw-1)
-                 ]
-            food = nf if nf not in snake else None
+    def encounter_snakes(self, snakes):
+        if self.snake[0][0] in [0, self.sh] or \
+           self.snake[0][1] in [0, self.sw]:
+            return True
+        for snake in snakes:
+            if self.snake[0] in snake.snake[1:]:
+                return True
 
-        w.addch(food[0], food[1], curses.ACS_PI)
-    else:
-        tail = snake.pop()
-        w.addch(int(tail[0]), int(tail[1]), ' ')
+        return False
 
-    w.addch(int(snake[0][0]), int(snake[0][1]), curses.ACS_CKBOARD)
+    def encounter_food(self, food_locations):
+        if self.snake[0] in food_locations:
+            food_locations.remove(self.snake[0])
+        else:
+            self.undraw = [self.snake.pop()]
+
+        return food_locations
+
+    def draw(self):
+        for x in self.undraw:
+            self.drawer.addch(int(x[0]),int(x[1]), ' ')
+            self.undraw = []
+            for body_part in self.get_snake():
+                for location in body_part[0]:
+                    self.drawer.addch(location[0], location[1], body_part[1])
+
+    def remove_from_field(self):
+        for location in self.snake:
+            self.drawer.addch(location[0], location[1], ' ')

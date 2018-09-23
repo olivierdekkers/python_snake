@@ -1,10 +1,8 @@
 import curses
-from figures import Snake_figure
-from game import Snake
+from game import SnakeGame
 
 
 class Driver(object):
-
     def __init__(self):
         self.game = None
         s = curses.initscr()
@@ -28,7 +26,7 @@ class Driver(object):
             key = key if next_key == -1 else next_key
 
             self.game.move(key)
-            
+
             if self.game.get_state():
                 self.game.draw()
             else:
@@ -36,7 +34,7 @@ class Driver(object):
                 quit()
 
 driver = Driver()
-driver.game = Snake(driver.drawer)
+driver.game = SnakeGame(driver.drawer)
 driver.game.food_len =5
-driver.game.number_of_snakes = 2
+driver.game.number_of_snakes = 1
 driver.start()
